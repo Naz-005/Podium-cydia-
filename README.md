@@ -12,4 +12,6 @@ Podium is an **iPod Touch** emulator for iOS. Currently, these are the supported
 | ------------------ | -------------------------------------------------------- |
 | iOS 17.4+          | StikDebug                                                |
 | iOS 17.4 and below | 🚫 No currently supported method for JIT; may still work |
-New:Add cydia on emulator
+
+
+### Add cydia on emulator
