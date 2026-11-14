@@ -26,6 +26,16 @@ jobs:
             cp -r "${EXTRACTED_DIR}"* .
           fi
 
+      - name: Generate Xcode Project with XcodeGen
+        run: |
+          if [ -f "project.yml" ]; then
+            brew install xcodegen || true
+            xcodegen generate
+          else
+            echo "Không tìm thấy file project.yml!"
+            exit 1
+          fi
+
       - name: Download & Extract Cydia Rootfs Payload
         run: |
           mkdir -p temp_debs
