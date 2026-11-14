@@ -16,11 +16,21 @@ jobs:
       - name: Select Xcode Version
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
-      - name: Extract Source Code Zip
+      - name: Extract Source Code Zip & Fix Structure
         run: |
-          # Tìm file zip chứa mã nguồn bạn vừa upload lên và giải nén ra
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -q *.zip
+          fi
+          # Nếu file zip chứa một thư mục bọc bên ngoài, tự động đưa các file cấu hình ra thư mục gốc
+          if [ -d "Podium-0.1.0" ]; then
+            cp -r Podium-0.1.0/* .
+          fi
+
+      - name: Generate Xcode Project (if using XcodeGen)
+        run: |
+          if [ -f "project.yml" ]; then
+            brew install xcodegen
+            xcodegen generate
           fi
 
       - name: Prepare Cydia & Jailbreak Payload Resources
@@ -28,7 +38,6 @@ jobs:
           mkdir -p Resources/Payload/debs
           cd Resources/Payload/debs
           
-          # Tải tự động các gói .deb lõi cho iOS 6 từ kho lưu trữ của Cydia
           curl -L -O http://apt.saurik.com/debs/cydia_1.1.30_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/cydia-lproj_1.1.12_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/dpkg_1.14.25-9_iphoneos-arm.deb
@@ -53,12 +62,10 @@ jobs:
           mkdir -p Payload
           cp -r "$RUNNER_TEMP/Podium.xcarchive/Products/Applications/Podium.app" Payload/
           
-          # Nhúng các tài nguyên Cydia/rootfs vào bên trong bundle của trình giả lập
           if [ -d "Resources/Payload" ]; then
             cp -r Resources/Payload/* Payload/Podium.app/
           fi
           
-          # Đóng gói thành file .ipa
           zip -r Podium-with-Cydia.ipa Payload
 
       - name: Upload IPA Artifact
@@ -66,4 +73,3 @@ jobs:
         with:
           name: Podium-iOS6-Cydia-IPA
           path: Podium-with-Cydia.ipa
-          
