@@ -1,0 +1,61 @@
+name: Build Podium iOS Simulator with Cydia Payload
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Prepare Cydia & Jailbreak Payload Resources
+        run: |
+          mkdir -p Resources/Payload/debs
+          cd Resources/Payload/debs
+          
+          # Tải tự động các gói .deb lõi cho iOS 6 từ kho lưu trữ của Cydia
+          curl -L -O http://apt.saurik.com/debs/cydia_1.1.30_iphoneos-arm.deb
+          curl -L -O http://apt.saurik.com/debs/cydia-lproj_1.1.12_iphoneos-arm.deb
+          curl -L -O http://apt.saurik.com/debs/dpkg_1.14.25-9_iphoneos-arm.deb
+          curl -L -O http://apt.saurik.com/debs/apt7_0.7.25.3-8_iphoneos-arm.deb
+          curl -L -O http://apt.saurik.com/debs/uikittools_1.1.12_iphoneos-arm.deb
+          curl -L -O http://apt.saurik.com/debs/mobilesubstrate_0.9.6301_iphoneos-arm.deb
+
+      - name: Build Unsigned Archive
+        run: |
+          xcodebuild archive \
+            -project Podium.xcodeproj \
+            -scheme Podium \
+            -configuration Release \
+            -archivePath $RUNNER_TEMP/Podium.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
+      - name: Inject Payload & Package into IPA
+        run: |
+          mkdir -p Payload
+          cp -r "$RUNNER_TEMP/Podium.xcarchive/Products/Applications/Podium.app" Payload/
+          
+          # Nhúng các tài nguyên Cydia/rootfs vào bên trong bundle của trình giả lập
+          if [ -d "Resources/Payload" ]; then
+            cp -r Resources/Payload/* Payload/Podium.app/
+          fi
+          
+          # Đóng gói thành file .ipa (dùng cho Sideloadly / TrollStore / LiveContainer)
+          zip -r Podium-with-Cydia.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Podium-iOS6-Cydia-IPA
+          path: Podium-with-Cydia.ipa
