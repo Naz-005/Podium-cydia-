@@ -21,8 +21,10 @@ jobs:
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -q *.zip
           fi
-          if [ -d "Podium-0.1.0" ]; then
-            cp -r Podium-0.1.0/* .
+          # Tự động tìm thư mục giải nén nếu có thư mục bọc ngoài
+          EXTRACTED_DIR=$(ls -d */ | grep -vE '(.github|Resources|Payload|temp_debs)' | head -n 1)
+          if [ -n "$EXTRACTED_DIR" ] && [ -f "${EXTRACTED_DIR}project.yml" ]; then
+            cp -r "${EXTRACTED_DIR}"* .
           fi
 
       - name: Generate Xcode Project (if using XcodeGen)
@@ -46,7 +48,7 @@ jobs:
           curl -L -O http://apt.saurik.com/debs/uikittools_1.1.12_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/mobilesubstrate_0.9.6301_iphoneos-arm.deb
           
-          # Giải nén trực tiếp ruột các gói .deb vào CydiaRootfs
+          # Giải nén trực tiếp các gói .deb vào CydiaRootfs
           for deb in *.deb; do
             ar -x "$deb"
             if [ -f "data.tar.gz" ]; then
@@ -67,9 +69,15 @@ jobs:
 
       - name: Build Unsigned Archive
         run: |
+          # Tự động nhận diện file .xcodeproj và tên Scheme chính xác tránh lỗi hardcode
+          PROJECT_FILE=$(ls *.xcodeproj | head -n 1)
+          SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
+          
+          echo "Đang build dự án: $PROJECT_FILE với Scheme: $SCHEME_NAME"
+          
           xcodebuild archive \
-            -project Podium.xcodeproj \
-            -scheme Podium \
+            -project "$PROJECT_FILE" \
+            -scheme "$SCHEME_NAME" \
             -configuration Release \
             -archivePath $RUNNER_TEMP/Podium.xcarchive \
             CODE_SIGNING_ALLOWED=NO \
@@ -80,10 +88,12 @@ jobs:
       - name: Inject Payload & Package into IPA
         run: |
           mkdir -p Payload
-          cp -r "$RUNNER_TEMP/Podium.xcarchive/Products/Applications/Podium.app" Payload/
+          # Tìm file .app được build ra động
+          APP_PATH=$(find $RUNNER_TEMP/Podium.xcarchive -name "*.app" | head -n 1)
+          cp -r "$APP_PATH" Payload/
           
           if [ -d "Resources/Payload" ]; then
-            cp -r Resources/Payload/* Payload/Podium.app/
+            cp -r Resources/Payload/* Payload/*.app/
           fi
           
           zip -r Podium-with-Cydia.ipa Payload
