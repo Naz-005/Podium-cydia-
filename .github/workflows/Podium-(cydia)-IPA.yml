@@ -21,7 +21,6 @@ jobs:
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -q *.zip
           fi
-          # Nếu file zip chứa một thư mục bọc bên ngoài, tự động đưa các file cấu hình ra thư mục gốc
           if [ -d "Podium-0.1.0" ]; then
             cp -r Podium-0.1.0/* .
           fi
@@ -33,17 +32,38 @@ jobs:
             xcodegen generate
           fi
 
-      - name: Prepare Cydia & Jailbreak Payload Resources
+      - name: Download & Extract Cydia Rootfs Payload
         run: |
-          mkdir -p Resources/Payload/debs
-          cd Resources/Payload/debs
+          mkdir -p temp_debs
+          mkdir -p Resources/Payload/CydiaRootfs
+          cd temp_debs
           
+          # Tải các gói lõi Cydia cho iOS 6
           curl -L -O http://apt.saurik.com/debs/cydia_1.1.30_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/cydia-lproj_1.1.12_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/dpkg_1.14.25-9_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/apt7_0.7.25.3-8_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/uikittools_1.1.12_iphoneos-arm.deb
           curl -L -O http://apt.saurik.com/debs/mobilesubstrate_0.9.6301_iphoneos-arm.deb
+          
+          # Giải nén trực tiếp ruột các gói .deb vào CydiaRootfs
+          for deb in *.deb; do
+            ar -x "$deb"
+            if [ -f "data.tar.gz" ]; then
+              tar -xzf data.tar.gz -C ../Resources/Payload/CydiaRootfs
+              rm data.tar.gz
+            elif [ -f "data.tar.lzma" ]; then
+              tar --lzma -xf data.tar.lzma -C ../Resources/Payload/CydiaRootfs
+              rm data.tar.lzma
+            elif [ -f "data.tar.xz" ]; then
+              tar -xJf data.tar.xz -C ../Resources/Payload/CydiaRootfs
+              rm data.tar.xz
+            fi
+            rm -f control.tar.* debian-binary
+          done
+          
+          mkdir -p ../Resources/Payload/CydiaRootfs/var/mobile/Media
+          touch ../Resources/Payload/CydiaRootfs/.cydia_no_stash
 
       - name: Build Unsigned Archive
         run: |
