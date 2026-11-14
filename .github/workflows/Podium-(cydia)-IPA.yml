@@ -73,9 +73,14 @@ jobs:
 
       - name: Build Unsigned Archive
         run: |
-          PROJECT_FILE=$(ls *.xcodeproj | head -n 1)
-          SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
+          PROJECT_FILE=$(ls -d *.xcodeproj | head -n 1)
           
+          if [ -z "$PROJECT_FILE" ]; then
+            echo "Lỗi: Không tìm thấy file .xcodeproj nào trong thư mục!"
+            exit 1
+          fi
+          
+          SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
           echo "Đang build dự án: $PROJECT_FILE với Scheme: $SCHEME_NAME"
           
           xcodebuild archive \
