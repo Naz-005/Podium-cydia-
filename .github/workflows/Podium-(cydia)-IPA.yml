@@ -19,7 +19,7 @@ jobs:
       - name: Extract Source Code Zip & Fix Structure
         run: |
           if ls *.zip 1> /dev/null 2>&1; then
-            unzip -q *.zip
+            unzip -qo *.zip
           fi
           EXTRACTED_DIR=$(ls -d */ | grep -vE '(.github|Resources|Payload|temp_debs)' | head -n 1)
           if [ -n "$EXTRACTED_DIR" ] && [ -d "$EXTRACTED_DIR" ]; then
