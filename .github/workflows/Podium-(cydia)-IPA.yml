@@ -21,14 +21,13 @@ jobs:
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -qo *.zip
           fi
-          EXTRACTED_DIR=$(ls -d */ | grep -vE '(.github|Resources|Payload|temp_debs)' | head -n 1)
-          if [ -n "$EXTRACTED_DIR" ] && [ -d "$EXTRACTED_DIR" ]; then
-            cp -r "${EXTRACTED_DIR}"* .
-          fi
-          XCODE_PROJ=$(find . -name "*.xcodeproj" -maxdepth 3 | head -n 1)
-          if [ -n "$XCODE_PROJ" ] && [ "$XCODE_PROJ" != "./$(basename "$XCODE_PROJ")" ]; then
-            parent_dir=$(dirname "$XCODE_PROJ")
-            cp -r "$parent_dir"/* .
+          # Tự động tìm thư mục chứa file xcodeproj và đưa toàn bộ nội dung ra thư mục gốc
+          SUBDIR=$(find . -name "*.xcodeproj" -maxdepth 3 | head -n 1)
+          if [ -n "$SUBDIR" ]; then
+            PROJ_DIR=$(dirname "$SUBDIR")
+            if [ "$PROJ_DIR" != "." ]; then
+              cp -r "$PROJ_DIR"/* .
+            fi
           fi
 
       - name: Download & Extract Cydia Rootfs Payload
@@ -68,7 +67,7 @@ jobs:
         run: |
           PROJECT_FILE=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
-            echo "Lỗi: Không tìm thấy file .xcodeproj!"
+            echo "Lỗi: Vẫn không tìm thấy file .xcodeproj sau khi cấu trúc lại!"
             exit 1
           fi
           SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
