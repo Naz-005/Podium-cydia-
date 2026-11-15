@@ -81,7 +81,7 @@ jobs:
           xcodebuild build \
             -project "$PROJECT_FILE" \
             -scheme "$SCHEME_NAME" \
-            -destination "platform=iOS Simulator,name=iPhone 15" \
+            -destination "generic/platform=iOS Simulator" \
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -93,7 +93,6 @@ jobs:
       - name: Locate Built App and Package into IPA
         run: |
           mkdir -p Payload
-          # Tìm file .app được build cho Simulator
           APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -type d | grep "Release-iphonesimulator" | head -n 1)
           
           if [ -z "$APP_PATH" ]; then
