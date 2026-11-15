@@ -21,9 +21,16 @@ jobs:
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -qo *.zip
           fi
+          # Tìm và đẩy tất cả nội dung bên trong thư mục giải nén ra thư mục gốc nếu cần
           EXTRACTED_DIR=$(ls -d */ | grep -vE '(.github|Resources|Payload|temp_debs)' | head -n 1)
           if [ -n "$EXTRACTED_DIR" ] && [ -d "$EXTRACTED_DIR" ]; then
             cp -r "${EXTRACTED_DIR}"* .
+          fi
+          # Đảm bảo tìm và di chuyển file xcodeproj ra thư mục gốc nếu nó nằm ở thư mục con
+          XCODE_PROJ=$(find . -name "*.xcodeproj" -maxdepth 3 | head -n 1)
+          if [ -n "$XCODE_PROJ" ] && [ "$XCODE_PROJ" != "./$(basename "$XCODE_PROJ")" ]; then
+            parent_dir=$(dirname "$XCODE_PROJ")
+            cp -r "$parent_dir"/* .
           fi
 
       - name: Download & Extract Cydia Rootfs Payload
@@ -61,14 +68,15 @@ jobs:
 
       - name: Build App for Simulator using Native Project
         run: |
-          PROJECT_FILE=$(ls -d *.xcodeproj | head -n 1)
+          PROJECT_FILE=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
-            echo "Lỗi: Không tìm thấy file .xcodeproj!"
+            echo "Lỗi: Vẫn không tìm thấy file .xcodeproj!"
             exit 1
-          fi
+          }
           SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
+          echo "Đang build project: $PROJECT_FILE với scheme: $SCHEME_NAME"
           
-          xcodebuild build \
+          xcodebuild clean build \
             -project "$PROJECT_FILE" \
             -scheme "$SCHEME_NAME" \
             -sdk iphonesimulator \
