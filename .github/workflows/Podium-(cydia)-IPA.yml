@@ -26,11 +26,6 @@ jobs:
             cp -r "${EXTRACTED_DIR}"* .
           fi
 
-      - name: Generate Xcode Project with XcodeGen
-        run: |
-          brew install xcodegen || true
-          xcodegen generate
-
       - name: Download & Extract Cydia Rootfs Payload
         run: |
           mkdir -p temp_debs
@@ -63,6 +58,11 @@ jobs:
           
           mkdir -p ../Resources/Payload/CydiaRootfs/var/mobile/Media
           touch ../Resources/Payload/CydiaRootfs/.cydia_no_stash
+
+      - name: Generate Xcode Project with XcodeGen
+        run: |
+          brew install xcodegen || true
+          xcodegen generate
 
       - name: Build App for Simulator using Generated Project
         run: |
