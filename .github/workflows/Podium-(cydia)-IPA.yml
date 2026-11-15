@@ -26,16 +26,6 @@ jobs:
             cp -r "${EXTRACTED_DIR}"* .
           fi
 
-      - name: Generate Xcode Project with XcodeGen
-        run: |
-          if [ -f "project.yml" ]; then
-            brew install xcodegen || true
-            xcodegen generate
-          else
-            echo "Không tìm thấy file project.yml!"
-            exit 1
-          fi
-
       - name: Download & Extract Cydia Rootfs Payload
         run: |
           mkdir -p temp_debs
@@ -69,7 +59,7 @@ jobs:
           mkdir -p ../Resources/Payload/CydiaRootfs/var/mobile/Media
           touch ../Resources/Payload/CydiaRootfs/.cydia_no_stash
 
-      - name: Build App for Simulator
+      - name: Build App for Simulator using Native Project
         run: |
           PROJECT_FILE=$(ls -d *.xcodeproj | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
@@ -78,7 +68,7 @@ jobs:
           fi
           SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
           
-          xcodebuild clean build \
+          xcodebuild build \
             -project "$PROJECT_FILE" \
             -scheme "$SCHEME_NAME" \
             -sdk iphonesimulator \
