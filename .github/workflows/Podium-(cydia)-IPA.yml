@@ -69,7 +69,7 @@ jobs:
           mkdir -p ../Resources/Payload/CydiaRootfs/var/mobile/Media
           touch ../Resources/Payload/CydiaRootfs/.cydia_no_stash
 
-      - name: Build Unsigned Archive
+      - name: Build App for Simulator
         run: |
           PROJECT_FILE=$(ls -d *.xcodeproj | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
@@ -78,17 +78,16 @@ jobs:
           fi
           SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
           
-          xcodebuild build \
+          xcodebuild clean build \
             -project "$PROJECT_FILE" \
             -scheme "$SCHEME_NAME" \
-            -destination "generic/platform=iOS Simulator" \
+            -sdk iphonesimulator \
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
-            COMPILER_INDEX_STORE_ENABLE=NO \
-            SWIFT_STRICT_CONCURRENCY=minimal
+            COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Locate Built App and Package into IPA
         run: |
