@@ -21,13 +21,28 @@ jobs:
           if ls *.zip 1> /dev/null 2>&1; then
             unzip -qo *.zip
           fi
-          # Tự động tìm thư mục chứa file xcodeproj và đưa toàn bộ nội dung ra thư mục gốc
-          SUBDIR=$(find . -name "*.xcodeproj" -maxdepth 3 | head -n 1)
-          if [ -n "$SUBDIR" ]; then
-            PROJ_DIR=$(dirname "$SUBDIR")
-            if [ "$PROJ_DIR" != "." ]; then
-              cp -r "$PROJ_DIR"/* .
-            fi
+          EXTRACTED_DIR=$(ls -d */ | grep -vE '(.github|Resources|Payload|temp_debs)' | head -n 1)
+          if [ -n "$EXTRACTED_DIR" ] && [ -d "$EXTRACTED_DIR" ]; then
+            cp -r "${EXTRACTED_DIR}"* .
+          fi
+
+      - name: Generate Xcode Project with XcodeGen
+        run: |
+          brew install xcodegen || true
+          if [ -f "project.yml" ]; then
+            xcodegen generate
+          else
+            echo "name: Podium" > project.yml
+            echo "options:" >> project.yml
+            echo "  bundleIdPrefix: com.podium.emulator" >> project.yml
+            echo "targets:" >> project.yml
+            echo "  Podium:" >> project.yml
+            echo "    type: application" >> project.yml
+            echo "    platform: iOS" >> project.yml
+            echo "    sources: [ . ]" >> project.yml
+            echo "    settings:" >> project.yml
+            echo "      CODE_SIGNING_ALLOWED: \"NO\"" >> project.yml
+            xcodegen generate
           fi
 
       - name: Download & Extract Cydia Rootfs Payload
@@ -63,11 +78,11 @@ jobs:
           mkdir -p ../Resources/Payload/CydiaRootfs/var/mobile/Media
           touch ../Resources/Payload/CydiaRootfs/.cydia_no_stash
 
-      - name: Build App for Simulator using Native Project
+      - name: Build App for Simulator using Generated Project
         run: |
           PROJECT_FILE=$(find . -name "*.xcodeproj" -maxdepth 2 | head -n 1)
           if [ -z "$PROJECT_FILE" ]; then
-            echo "Lỗi: Vẫn không tìm thấy file .xcodeproj sau khi cấu trúc lại!"
+            echo "Lỗi: Không thể sinh ra file .xcodeproj bằng XcodeGen!"
             exit 1
           fi
           SCHEME_NAME=$(basename "$PROJECT_FILE" .xcodeproj)
